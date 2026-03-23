@@ -1,26 +1,39 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { StyleSheet, View, Text} from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
 import * as Location from 'expo-location';
 
-export default function MapScreen({onAddressChange}) {
-
+export default function MapScreen({ onAddressChange, onLocationChange }) {
   const [location, setLocation] = useState(null);
   const [errorMsg, setErrorMsg] = useState(null);
-  const [address, setAddress] = useState(null);
+  const onAddressChangeRef = useRef(onAddressChange);
+  const onLocationChangeRef = useRef(onLocationChange);
+
+  useEffect(() => {
+    onAddressChangeRef.current = onAddressChange;
+    onLocationChangeRef.current = onLocationChange;
+  }, [onAddressChange, onLocationChange]);
+
   useEffect(() => {
     async function getLocation() {
-      let { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') return;
-      let loc = await Location.getCurrentPositionAsync({});
-      setLocation(loc.coords);
-      let addr = await Location.reverseGeocodeAsync(loc.coords);
-      setAddress(addr[0]);
-      if (addr[0]) {
-        setAddress(`${addr[0].street}, ${addr[0].city}`);
-        onAddressChange?.(addr[0].street, `${addr[0].city}, ${addr[0].region}`);
+      try {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== 'granted') {
+          setErrorMsg('Location permission was denied.');
+          return;
+        }
+
+        const loc = await Location.getCurrentPositionAsync({});
+        setLocation(loc.coords);
+        onLocationChangeRef.current?.(loc.coords);
+
+        const addr = await Location.reverseGeocodeAsync(loc.coords);
+        if (addr[0]) {
+          onAddressChangeRef.current?.(addr[0].street, `${addr[0].city}, ${addr[0].region}`);
+        }
+      } catch (_error) {
+        setErrorMsg('Unable to load your location.');
       }
-      
     }
 
     getLocation();

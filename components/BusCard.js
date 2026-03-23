@@ -1,8 +1,14 @@
-import { StyleSheet, View, Text, ScrollView } from 'react-native';
+import { StyleSheet, View, Text } from 'react-native';
 
-export default function BusCard({ route, destination, stop, minutes, color }) {
+export default function BusCard({
+  route = 'RTD',
+  destination = 'Waiting for transit data',
+  stop = 'No stop information available yet',
+  minutes = '--',
+  color = '#808080',
+}) {
     return (
-        <View style={[styles.card, { backgroundColor: '#808080' }]}>
+        <View style={[styles.card, { backgroundColor: color }]}>
           <Text style={styles.routeName}>{route}</Text>
           <View style={styles.cardMid}>
             <Text style={styles.destination}>{destination}</Text>
