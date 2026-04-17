@@ -31,7 +31,7 @@ export default function RouteDetail() {
       <View style={{ flex: 1 }}>
     <ScrollView style={[styles.container, { backgroundColor: color }]}>
       
-      <Text style={styles.backBtn} onPress={() => router.back()}>←</Text>
+      <Text style={styles.backBtn} onPress={() => router.back()}>X</Text>
 
       <View style={styles.header}>
         <Text style={styles.routeName}>{route}</Text>
