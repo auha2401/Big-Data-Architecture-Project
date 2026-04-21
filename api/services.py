@@ -22,6 +22,7 @@ async def get_nearest_stations_with_realtime(
             sin( radians($1) ) * sin( radians( stop_lat ) ) 
         ) ) AS distance_meters
     FROM stops
+    WHERE stop_id NOT LIKE 'google-transit-flex%'
     ORDER BY distance_meters ASC
     LIMIT $3;
     """
@@ -56,6 +57,7 @@ async def get_nearest_lines(db: DBConnection, lat: float, lon: float, limit: int
                 sin( radians($1) ) * sin( radians( stop_lat ) ) 
             ) ) AS distance_meters
         FROM stops
+        WHERE stop_id NOT LIKE 'google-transit-flex%'
         ORDER BY distance_meters ASC
         LIMIT 50
     )
@@ -70,7 +72,7 @@ async def get_nearest_lines(db: DBConnection, lat: float, lon: float, limit: int
     LIMIT $3;
     """
     rows = await db.fetch(query, lat, lon, limit)
-    
+
     # Re-sort the final result by distance
     lines = [dict(r) for r in rows]
     lines.sort(key=lambda x: x['distance_meters'])
@@ -193,6 +195,7 @@ async def search_routes(
                 sin( radians($1) ) * sin( radians( stop_lat ) )
             ) ) AS distance_meters
         FROM stops
+        WHERE stop_id NOT LIKE 'google-transit-flex%'
         ORDER BY distance_meters ASC
         LIMIT 25
     ),
