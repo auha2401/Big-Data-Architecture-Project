@@ -1,10 +1,12 @@
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity } from 'react-native';
 import MapScreen from '@/components/MapView';
 import BusCard from '@/components/BusCard';
 import Header from '@/components/Header';
 import { useEffect, useRef, useState } from 'react';
 import {GestureHandlerRootView} from 'react-native-gesture-handler';
 import BottomSheet, {BottomSheetScrollView} from '@gorhom/bottom-sheet';
+import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import {
   adaptStationToBusCard,
   fetchNearestStations,
@@ -13,6 +15,7 @@ import {
 } from '@/lib/api';
 export default function Index() {
  const bottomSheetRef = useRef(null);
+ const router = useRouter();
  const [street, setStreet] = useState(null);
  const [city, setCity] = useState(null);
  const [coords, setCoords] = useState(null);
@@ -88,6 +91,11 @@ export default function Index() {
         snapPoints={['25%', '50%']}
       >
    <BottomSheetScrollView>
+      <TouchableOpacity style={styles.savedBtn} onPress={() => router.push('/saved')}>
+        <Ionicons name="bookmark" size={16} color="#F08C21" />
+        <Text style={styles.savedBtnText}>Saved Routes</Text>
+        <Text style={styles.savedBtnArrow}>→</Text>
+      </TouchableOpacity>
       {cards.map((card) => (
         <BusCard
           key={card.id}
@@ -109,5 +117,29 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: 'transparent',
   },
-  
+  savedBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginHorizontal: 16,
+    marginTop: 8,
+    marginBottom: 4,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    backgroundColor: '#FFF8EE',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#F08C21',
+    gap: 8,
+  },
+  savedBtnText: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#F08C21',
+  },
+  savedBtnArrow: {
+    fontSize: 14,
+    color: '#F08C21',
+    fontWeight: '700',
+  },
 });

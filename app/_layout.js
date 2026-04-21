@@ -8,6 +8,7 @@ export default function RootLayout() {
         <Stack.Screen name="index" />
         <Stack.Screen name="trips" />
         <Stack.Screen name="route-detail" />
+        <Stack.Screen name="saved" />
       </Stack>
       <StatusBar style="auto" />
     </>

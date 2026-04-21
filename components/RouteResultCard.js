@@ -1,5 +1,8 @@
 import { StyleSheet, View, Text, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+import { useState, useEffect, useCallback } from 'react';
+import { isRouteSaved, saveRoute, removeRoute } from '@/lib/savedRoutes';
 
 function estimateWalkMinutes(meters) {
   if (!Number.isFinite(meters)) return '--';
@@ -8,6 +11,7 @@ function estimateWalkMinutes(meters) {
 
 export default function RouteResultCard({ route }) {
   const router = useRouter();
+  const [saved, setSaved] = useState(false);
 
   const {
     route_id,
@@ -17,6 +21,20 @@ export default function RouteResultCard({ route }) {
     boarding_stop_name,
     alighting_stop_name,
   } = route;
+
+  useEffect(() => {
+    isRouteSaved(route_id).then(setSaved);
+  }, [route_id]);
+
+  const handleBookmark = useCallback(async () => {
+    if (saved) {
+      await removeRoute(route_id);
+      setSaved(false);
+    } else {
+      await saveRoute(route);
+      setSaved(true);
+    }
+  }, [saved, route_id, route]);
 
   function handlePress() {
     router.push({
@@ -61,10 +79,19 @@ export default function RouteResultCard({ route }) {
         </View>
       </View>
 
-      {/* Walk time to boarding stop */}
-      <Text style={styles.walkTime}>
-        {estimateWalkMinutes(origin_distance_meters)}
-      </Text>
+      {/* Right column: walk time + bookmark */}
+      <View style={styles.rightCol}>
+        <Text style={styles.walkTime}>
+          {estimateWalkMinutes(origin_distance_meters)}
+        </Text>
+        <TouchableOpacity onPress={handleBookmark} hitSlop={8}>
+          <Ionicons
+            name={saved ? 'bookmark' : 'bookmark-outline'}
+            size={22}
+            color={saved ? '#F08C21' : '#bbb'}
+          />
+        </TouchableOpacity>
+      </View>
     </TouchableOpacity>
   );
 }
@@ -138,11 +165,15 @@ const styles = StyleSheet.create({
     color: '#555',
     flex: 1,
   },
+  rightCol: {
+    alignItems: 'center',
+    gap: 8,
+    flexShrink: 0,
+  },
   walkTime: {
     fontSize: 12,
     fontWeight: '700',
     color: '#F08C21',
     textAlign: 'right',
-    flexShrink: 0,
   },
 });
