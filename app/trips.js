@@ -134,9 +134,8 @@ export default function Trips() {
           </View>
 
           <TouchableOpacity
-            style={[styles.searchBtn, !destText.trim() && styles.searchBtnDisabled]}
+            style={styles.searchBtn}
             onPress={handleSearch}
-            disabled={!destText.trim()}
           >
             <Text style={styles.searchBtnText}>Find Routes</Text>
           </TouchableOpacity>
