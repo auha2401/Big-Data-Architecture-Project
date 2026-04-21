@@ -10,7 +10,7 @@ async def get_nearest_stations_with_realtime(
 ) -> list[dict]:
     # Standard Haversine formula SQL query to find the nearest GTFS stops.
     # Assumes a standard 'stops' table exists in the PostgreSQL database.
-    query = """
+    stops_query = """
     SELECT 
         stop_id, 
         stop_name, 
@@ -27,24 +27,59 @@ async def get_nearest_stations_with_realtime(
     LIMIT $3;
     """
     
-    rows = await db.fetch(query, lat, lon, limit)
+    stop_rows = await db.fetch(stops_query, lat, lon, limit)
+
+    #fetch scheduled arrivals 
+    static_query = """
+    SELECT 
+        st.trip_id,
+        st.arrival_time,
+        st.arrival_seconds,
+        t.route_id,
+        t.trip_headsign,
+        r.route_short_name,
+        r.route_long_name
+    FROM stop_times st
+    JOIN trips t ON t.trip_id = st.trip_id
+    JOIN routes r ON r.route_id = t.route_id 
+    WHERE st.stop_id = $1
+    ORDER BY st.arrival_seconds NULLS LAST
+    LIMIT 5;
+    """
 
     stations = []
-    for row in rows:
+    for row in stop_rows:
         stop_id = row['stop_id']
+        schedule_rows = await db.fetch(static_query, stop_id)
+        next_arrivals = []
+        for sched in schedule_rows:
+            arrival = {
+                "trip_id": sched['trip_id'],
+                "route_id": sched['route_id'],
+                "route_short_name": sched['route_short_name'],
+                "route_long_name": sched['route_long_name'],
+                "headsign": sched['trip_headsign'],
+                "scheduled_arrival": sched['arrival_time'],
+                "delay_seconds": 0,  # Placeholder for real-time delay info
+                "realtime_status": "scheduled",  # Will be updated with real-time data
+            }
         # Fetch real-time arrivals from Redis (placeholder integration)
-        realtime_data = await redis_client.get_realtime_updates(stop_id)
-        
-        stations.append({
+            realtime_data = await redis_client.get_realtime_updates(sched['trip_id'])
+            if realtime_data and isinstance(realtime_data, dict) and "delay_seconds" in realtime_data:
+                arrival["delay_seconds"] = realtime_data["delay_seconds"]
+                arrival["realtime_status"] = ("delayed" if realtime_data["delay_seconds"] > 60 else "on-time")
+            next_arrivals.append(arrival)
+    stations.append({
             "stop_id": stop_id,
             "stop_name": row['stop_name'],
             "latitude": row['latitude'],
             "longitude": row['longitude'],
             "distance_meters": round(row['distance_meters'], 2),
-            "next_arrivals": realtime_data
+            # next_arrivals is always populated from static data with real-time updates if available
+            "next_arrivals": next_arrivals,
         })
         
-    return stations
+return stations
 
 async def get_nearest_lines(db: DBConnection, lat: float, lon: float, limit: int = 10) -> list[dict]:
     # Joins stops -> stop_times -> trips -> routes to find distinct lines near the user
