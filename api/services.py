@@ -79,7 +79,7 @@ async def get_nearest_stations_with_realtime(
             "next_arrivals": next_arrivals,
         })
         
-return stations
+    return stations
 
 async def get_nearest_lines(db: DBConnection, lat: float, lon: float, limit: int = 10) -> list[dict]:
     # Joins stops -> stop_times -> trips -> routes to find distinct lines near the user
