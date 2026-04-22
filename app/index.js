@@ -105,6 +105,8 @@ export default function Index() {
           minutes={card.minutes}
           delay={card.delay}
           color={card.color}
+          routeId={card.routeId}
+          stopId={card.stopId}
         />
       ))}
       </BottomSheetScrollView>
