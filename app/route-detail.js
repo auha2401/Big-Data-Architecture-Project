@@ -93,7 +93,11 @@ export default function RouteDetail() {
   const focusCoordinate = vehicleMarkers[0]
     ? { latitude: vehicleMarkers[0].latitude, longitude: vehicleMarkers[0].longitude }
     : null;
-
+  const currentIndex = stops.findIndex(s => s.stop_name === stop);
+  const visibleStops = currentIndex === -1
+    ? stops.slice(0, 5)
+    : stops.slice(Math.max(0, currentIndex - 2), currentIndex + 5);
+    
   return (
    
       <View style={{ flex: 1, backgroundColor: color }}>
@@ -134,7 +138,7 @@ export default function RouteDetail() {
       {/* stop timeline, past stops, nearest stop, future stops  */}
       <View style={styles.timeline}>
          <View style={styles.timelineLine}/>
-         {stops.map((s, index) => (
+         {visibleStops.map((s, index) => (
   <View key={index} style={styles.timelineItem}>
     <View style={[styles.stopDot, s.stop_name === stop && styles.stopDotActive]} />
     <Text style={[
@@ -144,8 +148,14 @@ export default function RouteDetail() {
     ]}>
       {s.stop_name}
     </Text>
+    {s.stop_name == stop && (
+    <View style={styles.youBadge}>
+      <Text style={styles.youBadgeText}>You</Text>
+    </View>
+  )}
   </View>
-))}
+))} 
+
 
       </View>
        </ScrollView>
@@ -320,5 +330,18 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 12,
     fontWeight: '600',
+  },
+  youBadge: {
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    marginRight: 90,
+
+  },
+  youBadgeText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: '700',
   },
 });
