@@ -198,19 +198,19 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   stopDot: {
-    width: 12,
-    height: 12,
+    width: 14,
+    height: 14,
     borderRadius: 6,
     backgroundColor: 'rgba(255,255,255,0.4)',
     position: 'absolute',
-    left: 3,
+    left: 7,
   },
   stopDotActive: {
     backgroundColor: 'white',
     width: 14,
     height: 14,
     borderRadius: 7,
-    left: 2,
+    left: 7,
   },
   stopName: {
     color: 'white',
