@@ -1,6 +1,5 @@
 import logging
 from contextlib import asynccontextmanager
-from typing import Any
 
 from fastapi import APIRouter, Depends, FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -30,6 +29,7 @@ class ScheduleEntryResponse(BaseModel):
     trip_id: str
     headsign: str | None = None
     scheduled_arrival: str | None = None
+    minutes_until_arrival: int | None = None
     delay_seconds: int = 0
     realtime_status: str
 
@@ -68,7 +68,21 @@ class StationResponse(BaseModel):
     latitude: float
     longitude: float
     distance_meters: float
-    next_arrivals: list[dict[str, Any]] = Field(default_factory=list)
+    next_arrivals: list[ScheduleEntryResponse] = Field(default_factory=list)
+
+
+class RouteVehicleResponse(BaseModel):
+    route_id: str
+    trip_id: str | None = None
+    vehicle_id: str | None = None
+    vehicle_label: str | None = None
+    latitude: float
+    longitude: float
+    bearing: float | None = None
+    speed_mps: float | None = None
+    current_status: str | None = None
+    stop_id: str | None = None
+    updated_at: str | None = None
 
 
 async def get_redis(request: Request) -> RedisClient:
@@ -169,13 +183,14 @@ async def route_details(route_id: str, db: DBConnection = Depends(get_db)):
         logger.exception("Failed to load route details for %s", route_id)
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.get("/api/routes/{route_id}/vehicles")
+@router.get("/api/routes/{route_id}/vehicles", response_model=list[RouteVehicleResponse])
 async def route_vehicles(
     route_id: str,
+    db: DBConnection = Depends(get_db),
     redis_client: RedisClient = Depends(get_redis),
 ):
     try:
-        vehicles = await get_route_vehicles_realtime(redis_client, route_id)
+        vehicles = await get_route_vehicles_realtime(db, redis_client, route_id)
         return vehicles
     except Exception as e:
         logger.exception("Failed to load route vehicles for %s", route_id)
