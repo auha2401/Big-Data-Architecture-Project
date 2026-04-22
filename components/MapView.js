@@ -3,7 +3,21 @@ import { StyleSheet, View, Text} from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
 import * as Location from 'expo-location';
 
-export default function MapScreen({ onAddressChange, onLocationChange }) {
+function buildRegion(coordinate) {
+  return {
+    latitude: coordinate.latitude,
+    longitude: coordinate.longitude,
+    latitudeDelta: 0.01,
+    longitudeDelta: 0.01,
+  };
+}
+
+export default function MapScreen({
+  onAddressChange,
+  onLocationChange,
+  markers = [],
+  focusCoordinate = null,
+}) {
   const [location, setLocation] = useState(null);
   const [errorMsg, setErrorMsg] = useState(null);
   const onAddressChangeRef = useRef(onAddressChange);
@@ -42,23 +56,32 @@ export default function MapScreen({ onAddressChange, onLocationChange }) {
   return (
     <View style={styles.container}>
       {/* map view */}
-      {location ? (
+      {location || focusCoordinate ? (
         <MapView
           style={styles.map}
-          region={{
-            latitude: location.latitude,
-            longitude: location.longitude,
-            latitudeDelta: 0.01,
-            longitudeDelta: 0.01,
-          }}
+          region={buildRegion(focusCoordinate || location)}
         >
-          <Marker
-            coordinate={{
-              latitude: location.latitude,
-              longitude: location.longitude,
-            }}
-            title="Your location"
-          />
+          {location ? (
+            <Marker
+              coordinate={{
+                latitude: location.latitude,
+                longitude: location.longitude,
+              }}
+              title="Your location"
+            />
+          ) : null}
+          {markers.map((marker) => (
+            <Marker
+              key={marker.id}
+              coordinate={{
+                latitude: marker.latitude,
+                longitude: marker.longitude,
+              }}
+              title={marker.title}
+              description={marker.description}
+              pinColor={marker.pinColor}
+            />
+          ))}
         </MapView>
       ) : (<Text>{errorMsg || 'Loading location...'}</Text>
       )}

@@ -1,33 +1,98 @@
 import { StyleSheet, View, Text, ScrollView, TouchableOpacity } from 'react-native';
 import { useState, useEffect } from 'react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { fetchRouteDetails } from '@/lib/api';
+import { fetchRouteDetails, fetchRouteVehicles, fetchStopSchedule } from '@/lib/api';
 import MapScreen from '@/components/MapView';
 import { useFonts, Bungee_400Regular } from '@expo-google-fonts/bungee';
+
+
+function parseInitialArrivals(rawValue) {
+  if (!rawValue) {
+    return [];
+  }
+
+  try {
+    const parsed = JSON.parse(rawValue);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function buildVehicleMarker(vehicle, routeLabel) {
+  if (!vehicle || !Number.isFinite(vehicle.latitude) || !Number.isFinite(vehicle.longitude)) {
+    return [];
+  }
+
+  const label = vehicle.vehicle_label || vehicle.vehicle_id || routeLabel || 'Vehicle';
+  return [
+    {
+      id: vehicle.vehicle_id || vehicle.trip_id || 'live-vehicle',
+      latitude: vehicle.latitude,
+      longitude: vehicle.longitude,
+      title: `${label} live location`,
+      description: vehicle.updated_at ? `Updated ${vehicle.updated_at}` : 'Live vehicle position',
+      pinColor: '#0F766E',
+    },
+  ];
+}
 
 
 //page when clicking bus card, shows more details about the route and arrival times, walking time, and a scrollable list of past arrivals at that stop
 export default function RouteDetail() {
   const router = useRouter();
   const { route, destination, stop, color, minutes, nextArrivals, routeId, stopId } = useLocalSearchParams();
-  const arrivals = nextArrivals ? JSON.parse(nextArrivals) : [];
+  const [arrivals, setArrivals] = useState(() => parseInitialArrivals(nextArrivals));
   const [stops, setStops] = useState([]);
+  const [liveVehicle, setLiveVehicle] = useState(null);
   const [mapExpanded, setMapExpanded] = useState(false);
 
   useEffect(() => {
-    async function loadStops() {
-      if (!routeId) return;
+    let isActive = true;
+    const parsedFallbackArrivals = parseInitialArrivals(nextArrivals);
+
+    async function loadRouteData() {
       try {
-        const data = await fetchRouteDetails(routeId);
-        setStops(data.stops || []);
+        const [details, schedule, vehicles] = await Promise.all([
+          routeId ? fetchRouteDetails(routeId) : Promise.resolve(null),
+          stopId ? fetchStopSchedule(stopId) : Promise.resolve([]),
+          routeId ? fetchRouteVehicles(routeId) : Promise.resolve([]),
+        ]);
+
+        if (!isActive) {
+          return;
+        }
+
+        setStops(details?.stops || []);
+
+        const routeSpecificSchedule = routeId
+          ? schedule.filter((entry) => entry.route_id === routeId)
+          : schedule;
+        setArrivals(routeSpecificSchedule.length ? routeSpecificSchedule.slice(0, 3) : parsedFallbackArrivals);
+        setLiveVehicle(Array.isArray(vehicles) && vehicles.length ? vehicles[0] : null);
       } catch {
+        if (!isActive) {
+          return;
+        }
+
         setStops([]);
+        setArrivals(parsedFallbackArrivals);
+        setLiveVehicle(null);
       }
     }
-    loadStops();
-  }, [routeId]);
+
+    loadRouteData();
+
+    return () => {
+      isActive = false;
+    };
+  }, [nextArrivals, routeId, stopId]);
   const [fontsLoaded] = useFonts({ Bungee_400Regular });
   if (!fontsLoaded) return null;
+  const vehicleMarkers = buildVehicleMarker(liveVehicle, route);
+  const focusCoordinate = vehicleMarkers[0]
+    ? { latitude: vehicleMarkers[0].latitude, longitude: vehicleMarkers[0].longitude }
+    : null;
 
   return (
    
@@ -50,8 +115,11 @@ export default function RouteDetail() {
             <View key={index} style={styles.chip}>
               {index === 0 && <Text style={styles.chipLabel}>Next</Text>}
               <Text style={styles.chipTime}>
-                {arrival.minutes_until_arrival
-                  ? `${arrival.minutes_until_arrival} min` : '--'}
+                {arrival.minutes_until_arrival === 0
+                  ? 'Arriving'
+                  : Number.isFinite(arrival.minutes_until_arrival)
+                  ? `${arrival.minutes_until_arrival} min`
+                  : '--'}
               </Text>
             </View>
           ))
@@ -91,6 +159,8 @@ export default function RouteDetail() {
   <MapScreen
   onAddressChange={() => {}}
   onLocationChange={() => {}}
+  markers={vehicleMarkers}
+  focusCoordinate={focusCoordinate}
 />
     {
       !mapExpanded && (<TouchableOpacity style = {styles.expandBtn}
