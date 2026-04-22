@@ -1,5 +1,7 @@
 from .db import DBConnection
+from .realtime import get_route_vehicles, get_stop_schedule
 from .redis_client import RedisClient
+
 
 async def get_nearest_stations_with_realtime(
     db: DBConnection,
@@ -31,19 +33,18 @@ async def get_nearest_stations_with_realtime(
 
     stations = []
     for row in rows:
-        stop_id = row['stop_id']
-        # Fetch real-time arrivals from Redis (placeholder integration)
-        realtime_data = await redis_client.get_realtime_updates(stop_id)
-        
+        stop_id = row["stop_id"]
+        realtime_data = await get_stop_schedule(db, redis_client, stop_id, limit=3)
+
         stations.append({
             "stop_id": stop_id,
-            "stop_name": row['stop_name'],
-            "latitude": row['latitude'],
-            "longitude": row['longitude'],
-            "distance_meters": round(row['distance_meters'], 2),
-            "next_arrivals": realtime_data
+            "stop_name": row["stop_name"],
+            "latitude": row["latitude"],
+            "longitude": row["longitude"],
+            "distance_meters": round(row["distance_meters"], 2),
+            "next_arrivals": realtime_data,
         })
-        
+
     return stations
 
 async def get_nearest_lines(db: DBConnection, lat: float, lon: float, limit: int = 10) -> list[dict]:
@@ -92,47 +93,7 @@ async def get_stop_schedule_with_realtime(
     redis_client: RedisClient,
     stop_id: str,
 ) -> list[dict]:
-    # Standard query to fetch upcoming scheduled trips for a specific stop
-    # In a full production scenario, this must filter by current service_id/date and current time.
-    # For now, limiting to the next available scheduled trips for brevity.
-    query = """
-    SELECT 
-        st.trip_id, st.arrival_time, st.departure_time, st.stop_sequence,
-        t.route_id, t.trip_headsign,
-        r.route_short_name, r.route_long_name, r.route_type
-    FROM stop_times st
-    JOIN trips t ON st.trip_id = t.trip_id
-    JOIN routes r ON t.route_id = r.route_id
-    WHERE st.stop_id = $1
-    ORDER BY st.arrival_seconds NULLS LAST, st.arrival_time
-    LIMIT 20;
-    """
-    rows = await db.fetch(query, stop_id)
-
-    # Fetch real-time delay info for trips related to this stop
-    # rtd_collector may store trip_updates by trip_id or stop_id
-    # We pass trip_id to a stubbed fetch method to calculate updated_arrival
-    
-    schedule = []
-    for row in rows:
-        trip_id = row['trip_id']
-        rt_updates = await redis_client.get_realtime_updates(trip_id)
-        
-        delay_seconds = 0
-        if rt_updates and "delay_seconds" in rt_updates:
-            delay_seconds = rt_updates["delay_seconds"]
-            
-        schedule.append({
-            "route_id": row['route_id'],
-            "route_short_name": row['route_short_name'],
-            "route_long_name": row['route_long_name'],
-            "trip_id": trip_id,
-            "headsign": row['trip_headsign'],
-            "scheduled_arrival": row['arrival_time'],
-            "delay_seconds": delay_seconds,
-            "realtime_status": "delayed" if delay_seconds > 60 else "on-time"
-        })
-    return schedule
+    return await get_stop_schedule(db, redis_client, stop_id)
 
 async def get_route_details(db: DBConnection, route_id: str) -> dict | None:
     # Get basic route info
@@ -249,13 +210,9 @@ async def search_routes(
     ]
 
 
-async def get_route_vehicles_realtime(redis_client: RedisClient, route_id: str) -> list[dict]:
-    # Stub: query Redis for ALL `vehicle_positions` currently active for a specific `route_id`.
-    # rtd_collector parses the PB payload into DB & Redis.
-    # From previous exploration, it creates Redis messages under "key_prefix:entity_id".
-    
-    # In a full deployment, if Redis is geo-indexed or hashes are tracked by route_id,
-    # we would execute `SMEMBERS routes:<route_id>:vehicles` and get the hashes.
-    vehicles = await redis_client.get_realtime_updates(route_id)
-    
-    return vehicles
+async def get_route_vehicles_realtime(
+    db: DBConnection,
+    redis_client: RedisClient,
+    route_id: str,
+) -> list[dict]:
+    return await get_route_vehicles(db, redis_client, route_id)

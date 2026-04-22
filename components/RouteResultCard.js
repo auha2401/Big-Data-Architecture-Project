@@ -46,6 +46,8 @@ export default function RouteResultCard({ route }) {
         minutes: estimateWalkMinutes(origin_distance_meters),
         color: '#F08C21',
         nextArrivals: JSON.stringify([]),
+        routeId: route_id,
+        stopId: route.boarding_stop_id,
       },
     });
   }

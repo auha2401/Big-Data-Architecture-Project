@@ -35,16 +35,30 @@ class FakeDB:
 
 
 class FakeRedis:
-    async def get_realtime_updates(self, entity_id: str):
-        if entity_id == "stop-1":
-            return [
+    def __init__(self):
+        self.ttl = 900
+        self.cache = {
+            "api:stop-schedule:stop-1": [
                 {
+                    "route_id": "google-transit:A",
                     "route_short_name": "A",
+                    "route_long_name": "A Line",
+                    "trip_id": "google-transit:trip-1",
                     "headsign": "Denver Airport Station",
+                    "scheduled_arrival": "12:00:00",
                     "minutes_until_arrival": 4,
+                    "delay_seconds": 0,
+                    "realtime_status": "on-time",
                 }
             ]
-        return []
+        }
+
+    async def get_json(self, key: str):
+        return self.cache.get(key)
+
+    async def set_json(self, key: str, value, ttl: int | None = None):
+        self.cache[key] = value
+        return True
 
 
 class ApiContractTests(unittest.TestCase):

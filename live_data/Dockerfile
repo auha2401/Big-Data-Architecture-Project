@@ -11,7 +11,6 @@ COPY live_data/requirements.txt ./requirements.txt
 RUN python -m pip install --upgrade pip && \
     python -m pip install --no-cache-dir -r requirements.txt
 
-COPY live_data/README.md ./README.md
 COPY live_data/pyproject.toml ./pyproject.toml
 COPY live_data/sql ./sql
 COPY live_data/src ./src
