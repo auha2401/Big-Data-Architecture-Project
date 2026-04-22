@@ -58,12 +58,15 @@ export default function RouteDetail() {
           stopId ? fetchStopSchedule(stopId) : Promise.resolve([]),
           routeId ? fetchRouteVehicles(routeId) : Promise.resolve([]),
         ]);
+ 
 
         if (!isActive) {
           return;
         }
+ 
 
         setStops(details?.stops || []);
+      
 
         const routeSpecificSchedule = routeId
           ? schedule.filter((entry) => entry.route_id === routeId)
@@ -239,12 +242,13 @@ const styles = StyleSheet.create({
   chip: {
     backgroundColor: 'rgba(255,255,255,0.2)',
     borderRadius: 10,
-    padding: 10,
+    padding: 5,
     alignItems: 'center',
-    flex: 1,
+    justifyContent: 'center',
+    flex: 0.5,
   },
   chipLabel: {
-    fontSize: 9,
+    fontSize: 10,
     color: 'rgba(255,255,255,0.6)',
     textTransform: 'uppercase',
     letterSpacing: 1,

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { StyleSheet, View, Text} from 'react-native';
+import { StyleSheet, View, Text, Image} from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
 import * as Location from 'expo-location';
 
@@ -7,8 +7,8 @@ function buildRegion(coordinate) {
   return {
     latitude: coordinate.latitude,
     longitude: coordinate.longitude,
-    latitudeDelta: 0.01,
-    longitudeDelta: 0.01,
+    latitudeDelta: 0.007,
+    longitudeDelta: 0.007,
   };
 }
 
@@ -79,8 +79,16 @@ export default function MapScreen({
               }}
               title={marker.title}
               description={marker.description}
-              pinColor={marker.pinColor}
+             
+              
+            >
+            <Image
+              source={require('../assets/images/new-bus-marker.png')}
+              style={{ width: 70, height: 70 }}
+              resizeMode = "contain"
+              
             />
+            </Marker>
           ))}
         </MapView>
       ) : (<Text>{errorMsg || 'Loading location...'}</Text>
