@@ -32,9 +32,28 @@ function buildVehicleMarker(vehicle, routeLabel) {
       longitude: vehicle.longitude,
       title: `${label} live location`,
       description: vehicle.updated_at ? `Updated ${vehicle.updated_at}` : 'Live vehicle position',
-      pinColor: '#0F766E',
+      type: 'bus',
     },
   ];
+}
+
+function buildStationMarkers(stops) {
+  if (!Array.isArray(stops)) return [];
+
+  return stops
+    .filter(
+      (s) =>
+        Number.isFinite(s.latitude) &&
+        Number.isFinite(s.longitude)
+    )
+    .map((s) => ({
+      id: `stop-${s.stop_id || s.stop_name}`,
+      latitude: s.latitude,
+      longitude: s.longitude,
+      title: s.stop_name,
+      description: 'Station',
+      type: 'station',
+    }));
 }
 
 
@@ -92,15 +111,19 @@ export default function RouteDetail() {
   }, [nextArrivals, routeId, stopId]);
   const [fontsLoaded] = useFonts({ Bungee_400Regular });
   if (!fontsLoaded) return null;
-  const vehicleMarkers = buildVehicleMarker(liveVehicle, route);
-  const focusCoordinate = vehicleMarkers[0]
-    ? { latitude: vehicleMarkers[0].latitude, longitude: vehicleMarkers[0].longitude }
-    : null;
   const currentIndex = stops.findIndex(s => s.stop_name === stop);
   const visibleStops = currentIndex === -1
     ? stops.slice(0, 5)
     : stops.slice(Math.max(0, currentIndex - 2), currentIndex + 5);
-    
+  const vehicleMarkers = buildVehicleMarker(liveVehicle, route);
+  const stationMarkers = buildStationMarkers(visibleStops);
+  const mapMarkers = [
+    ...stationMarkers,
+    ...vehicleMarkers,
+  ];
+  const focusCoordinate = vehicleMarkers[0]
+  ? { latitude: vehicleMarkers[0].latitude, longitude: vehicleMarkers[0].longitude }
+  : null;
   return (
    
       <View style={{ flex: 1, backgroundColor: color }}>
@@ -172,7 +195,7 @@ export default function RouteDetail() {
   <MapScreen
   onAddressChange={() => {}}
   onLocationChange={() => {}}
-  markers={vehicleMarkers}
+  markers = {mapMarkers}
   focusCoordinate={focusCoordinate}
 />
     {

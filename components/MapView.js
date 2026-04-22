@@ -78,16 +78,20 @@ export default function MapScreen({
                 longitude: marker.longitude,
               }}
               title={marker.title}
-              description={marker.description}
-             
-              
+              description={marker.description}                 
             >
-            <Image
-              source={require('../assets/images/new-bus-marker.png')}
-              style={{ width: 70, height: 70 }}
-              resizeMode = "contain"
-              
-            />
+           <Image
+  source={
+    marker.type === 'bus'
+      ? require('../assets/images/new-bus-marker.png')
+      : require('../assets/images/station-marker.png')
+  }
+  style={{
+    width: marker.type === 'bus' ? 70 : 20,
+    height: marker.type === 'bus' ? 70 : 20,
+  }}
+  resizeMode="contain"
+/>
             </Marker>
           ))}
         </MapView>
